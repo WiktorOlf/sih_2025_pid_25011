@@ -20,9 +20,9 @@ class MyApp extends StatelessWidget {
       home: const LoginScreen(),
       routes: {
         '/dashboard': (context) => const StudentDashboard(
-              name: 'Dummy',
-              uuid: 'uuid1',
-              email: 'dummy@student.com',
+              name: 'Hardik Ranawat',
+              uuid: '0001',
+              email: 'hardik123@student.com',
             ),
       },
     );

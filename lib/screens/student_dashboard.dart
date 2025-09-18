@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
+import 'profile_settings.dart';
+import 'notification_settings.dart';
+import 'about_app.dart';
 
 class StudentDashboard extends StatefulWidget {
   final String name;
@@ -18,6 +22,7 @@ class StudentDashboard extends StatefulWidget {
 
 class _StudentDashboardState extends State<StudentDashboard> {
   int? selectedPeriod;
+  final ApiService _api = ApiService();
   final List<Map<String, dynamic>> periods = [
     {'id': 1, 'status': 'absent'},
     {'id': 2, 'status': 'absent'},
@@ -44,14 +49,22 @@ class _StudentDashboardState extends State<StudentDashboard> {
     });
   }
 
-  void _markAttendance(int id) {
-    setState(() {
-      periods.firstWhere((p) => p['id'] == id)['status'] = 'present';
-      selectedPeriod = null;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Attendance marked ✅')),
-    );
+  Future<void> _markAttendance(int id) async {
+    try {
+      final res = await _api.markAttendance(studentUuid: widget.uuid);
+      final present = res['present'] == true;
+      setState(() {
+        periods.firstWhere((p) => p['id'] == id)['status'] = present ? 'present' : 'absent';
+        selectedPeriod = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(present ? 'Attendance marked ✅' : 'Attendance updated')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to mark attendance: $e')),
+      );
+    }
   }
 
   @override
@@ -67,24 +80,45 @@ class _StudentDashboardState extends State<StudentDashboard> {
               accountName: Text(widget.name),
               accountEmail: Text(widget.email),
               currentAccountPicture: CircleAvatar(
-                backgroundImage: AssetImage('assets/images/profile_placeholder.png'),
+                backgroundImage: AssetImage('assets/images/logo_outline.png'),
               ),
               decoration: BoxDecoration(color: Colors.deepPurple),
             ),
             ListTile(
               leading: const Icon(Icons.person),
               title: const Text('Profile Settings'),
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ProfileSettingsScreen(),
+                  ),
+                );
+              },
             ),
             ListTile(
               leading: const Icon(Icons.notifications),
               title: const Text('Notification Settings'),
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const NotificationSettingsScreen(),
+                  ),
+                );
+              },
             ),
             ListTile(
               leading: const Icon(Icons.info),
               title: const Text('About the App'),
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AboutAppScreen(),
+                  ),
+                );
+              },
             ),
             const Divider(),
             ListTile(
@@ -100,16 +134,14 @@ class _StudentDashboardState extends State<StudentDashboard> {
       appBar: AppBar(
         backgroundColor: Colors.deepPurple,
         title: const Text('Student Dashboard'),
-        actions: [
-          Builder(
-            builder: (context) => IconButton(
-              icon: const CircleAvatar(
-                backgroundImage: AssetImage('assets/images/profile_placeholder.png'),
-              ),
-              onPressed: () => Scaffold.of(context).openDrawer(),
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const CircleAvatar(
+              backgroundImage: AssetImage('assets/images/logo_outline.png'),
             ),
+            onPressed: () => Scaffold.of(context).openDrawer(),
           ),
-        ],
+        ),
       ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -152,6 +184,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                           onPressed: () => _markAttendance(period['id']),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.deepPurple,
+                            foregroundColor: Colors.white,
                           ),
                           child: const Text('Mark Attendance'),
                         ),

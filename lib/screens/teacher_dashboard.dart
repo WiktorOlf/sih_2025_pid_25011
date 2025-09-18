@@ -1,15 +1,17 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import '../services/api_service.dart';
 
 class TeacherDashboardScreen extends StatefulWidget {
   final String name;
   final String email;
+  final int teacherId;
 
   const TeacherDashboardScreen({
     super.key,
     required this.name,
     required this.email,
+    required this.teacherId,
   });
 
   @override
@@ -18,22 +20,21 @@ class TeacherDashboardScreen extends StatefulWidget {
 
 class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
   bool _periodActive = false;
+  int? _periodId;
+  final ApiService _api = ApiService();
 
   Future<void> startPeriod() async {
-    final response = await http.post(
-      Uri.parse('http://10.0.2.2:8000/period/start'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': widget.email}),
-    );
-
-    if (response.statusCode == 200) {
+    try {
+      // For now we use a placeholder period name. You can make this dynamic.
+      final res = await _api.startPeriod(periodName: 'Lecture', teacherId: widget.teacherId);
       setState(() {
         _periodActive = true;
+        _periodId = (res['period_id'] as num).toInt();
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Period started ✅')),
       );
-    } else {
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to start period')),
       );
@@ -41,20 +42,17 @@ class _TeacherDashboardScreenState extends State<TeacherDashboardScreen> {
   }
 
   Future<void> stopPeriod() async {
-    final response = await http.post(
-      Uri.parse('http://10.0.2.2:8000/period/stop'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': widget.email}),
-    );
-
-    if (response.statusCode == 200) {
+    try {
+      if (_periodId == null) throw Exception('No active period');
+      await _api.stopPeriod(periodId: _periodId!);
       setState(() {
         _periodActive = false;
+        _periodId = null;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Period stopped ✅')),
       );
-    } else {
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Failed to stop period')),
       );

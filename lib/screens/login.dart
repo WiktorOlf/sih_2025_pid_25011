@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'student_dashboard.dart';
+import 'teacher_dashboard.dart';
+import '../services/api_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -13,19 +15,43 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   bool isLoading = false;
+  final ApiService _api = ApiService();
 
-  void _login() {
-    // For prototype, just navigate to dashboard with dummy data
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => StudentDashboard(
-          name: 'Hardik Ranawat',
-          uuid: '0001',
-          email: emailController.text.trim(),
-        ),
-      ),
-    );
+  Future<void> _login() async {
+    setState(() => isLoading = true);
+    try {
+      final res = await _api.login(emailController.text.trim(), passwordController.text);
+      final role = res['role'] as String;
+      if (role == 'student') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => StudentDashboard(
+              name: res['name'] as String,
+              uuid: (res['uuid'] ?? '') as String,
+              email: res['email'] as String,
+            ),
+          ),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => TeacherDashboardScreen(
+              name: res['name'] as String,
+              email: res['email'] as String,
+              teacherId: (res['id'] as num).toInt(),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login failed: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
   }
 
   @override
